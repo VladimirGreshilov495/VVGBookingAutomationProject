@@ -11,7 +11,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GetBookingById {
+public class GetBookingByIdTests {
     @Test
     public void testGetBookingById() throws Exception {
 

@@ -3,15 +3,22 @@ package core.clients;
 
 import core.settings.ApiEndpoints;
 import io.restassured.RestAssured;
+import io.restassured.filter.Filter;
+import io.restassured.filter.FilterContext;
 import io.restassured.response.Response;
+import io.restassured.specification.FilterableRequestSpecification;
+import io.restassured.specification.FilterableResponseSpecification;
 import io.restassured.specification.RequestSpecification;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import static java.lang.Math.log;
+
 public class ApiClient {
     private final String baseUrl;
+    private String token;
 
     public ApiClient() {
         this.baseUrl = determineBaseUrl();
@@ -36,22 +43,51 @@ public class ApiClient {
         return properties.getProperty("baseUrl");
     }
 
+    private RequestSpecification getRequestSpec() {
+        return RestAssured.given()
+                .baseUri(baseUrl) // Устанавливаем базовый URL
+                .header("Content-Type", "application/json") // Заголовок, указывающий формат данных
+                .header("Accept", "application/json") // Заголовок, указывающий на принимаемый формат
+                .filter(addAuthTokenFilter()); // Фильтр для добавления токена
+    }
+
+    public void createToken(String username, String password) {
+        // Формирование JSON тела для запроса
+        String requestBody = String.format("{ \"username\": \"%s\",\"password\": \"%s\" }", username, password);
+        // Отправка POST-запроса на эндпоинт для аутентификации и получение токена
+        Response response = getRequestSpec()
+                .body(requestBody) // Устанавливаем тело запроса
+                .when()
+                .post(ApiEndpoints.AUTHENTICATE.getPath()) // POST-запрос на эндпоинт аутентификации
+                .then()
+                .statusCode(200) // Проверяем, что статус ответа 200 (ОК)
+                .extract()
+                .response();
+        // Извлечение токена из ответа и сохранение в переменной
+        token = response.jsonPath().getString("token");
+    }
+
+        private Filter addAuthTokenFilter() {
+            return (FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx) -> {
+                if (token != null) {
+                    requestSpec.header("Cookie", "token=" + token);
+                }
+                return ctx.next(requestSpec, responseSpec); // Продолжает выполнение запроса
+            };
+     }
+
     public Response getBookingById(int id) {
         return getRequestSpec()
                 .when()
                 .get(ApiEndpoints.BOOKING_ID.getPath(), id) // Используем ENUM для эндпоинта /booking
                 .then()
+                .log().all()
                 .statusCode(200) // Ожидаемый статус-код 200 OK
                 .extract()
                 .response();
     }
 
-    private RequestSpecification getRequestSpec() {
-        return RestAssured.given()
-                .baseUri(baseUrl)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json");
-    }
+
 
     public Response ping() {
         return getRequestSpec()
@@ -73,6 +109,18 @@ public class ApiClient {
                 .response();
     }
 
+    // DELETE запрос на эндпоинт /booking
+    public Response deleteBooking(int bookingId) {
+        return getRequestSpec()
+                .pathParam("id", bookingId) // Указываем path параметр для ID
+                .when()
+                .delete(ApiEndpoints.BOOKING_ID.getPath()) // Используем параметр пути в запросе
+                .then()
+                .log().all()
+                .statusCode(201) // Предполагаемый код ответа
+                .extract()
+                .response();
+    }
+    }
 
-}
 
