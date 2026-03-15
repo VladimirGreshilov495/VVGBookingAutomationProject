@@ -26,6 +26,7 @@ public class FilterGetBookingTests {
         objectMapper = new ObjectMapper();
         apiClient.createToken("admin", "password123");
 
+
         // Создаём первое бронирование
         NewBooking firstBooking = new NewBooking();
         firstBooking.setFirstname("Walt");
