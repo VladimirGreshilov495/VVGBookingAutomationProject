@@ -14,8 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import static java.lang.Math.log;
-
 public class ApiClient {
     private final String baseUrl;
     private String token;
@@ -67,14 +65,14 @@ public class ApiClient {
         token = response.jsonPath().getString("token");
     }
 
-        private Filter addAuthTokenFilter() {
-            return (FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx) -> {
-                if (token != null) {
-                    requestSpec.header("Cookie", "token=" + token);
-                }
-                return ctx.next(requestSpec, responseSpec); // Продолжает выполнение запроса
-            };
-     }
+    private Filter addAuthTokenFilter() {
+        return (FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx) -> {
+            if (token != null) {
+                requestSpec.header("Cookie", "token=" + token);
+            }
+            return ctx.next(requestSpec, responseSpec); // Продолжает выполнение запроса
+        };
+    }
 
     public Response getBookingById(int id) {
         return getRequestSpec()
@@ -82,11 +80,9 @@ public class ApiClient {
                 .get(ApiEndpoints.BOOKING_ID.getPath(), id) // Используем ENUM для эндпоинта /booking
                 .then()
                 .log().all()
-                .statusCode(200) // Ожидаемый статус-код 200 OK
                 .extract()
                 .response();
     }
-
 
 
     public Response ping() {
@@ -109,6 +105,17 @@ public class ApiClient {
                 .response();
     }
 
+    public Response getBookingByFilter(String paramName, String paramValue) {
+        return getRequestSpec()
+                .queryParam(paramName, paramValue)
+                .when()
+                .get(ApiEndpoints.BOOKING.getPath())
+                .then()
+                .log().all()
+                .extract()
+                .response();
+    }
+
     // DELETE запрос на эндпоинт /booking
     public Response deleteBooking(int bookingId) {
         return getRequestSpec()
@@ -121,6 +128,47 @@ public class ApiClient {
                 .extract()
                 .response();
     }
+
+    public Response createBooking(String newBooking) {
+        return getRequestSpec()
+                .body(newBooking)
+                .log().all()
+                .when()
+                .post(ApiEndpoints.BOOKING.getPath())
+                .then()
+                .log().all()
+                .extract()
+                .response();
+
     }
+
+    // PUT запрос на эндпоинт /booking
+    public Response putBooking(int bookingId, String body) {
+        return getRequestSpec()
+                .contentType("application/json")
+                .pathParam("id", bookingId)
+                .body(body)
+                .when()
+                .put(ApiEndpoints.BOOKING_ID.getPath())
+                .then()
+                .log().all()
+                .extract()
+                .response();
+    }
+
+    // PUT запрос на эндпоинт /booking
+    public Response patchBooking(int bookingId, String body) {
+        return getRequestSpec()
+                .contentType("application/json")
+                .pathParam("id", bookingId)
+                .body(body)
+                .when()
+                .patch(ApiEndpoints.BOOKING_ID.getPath())
+                .then()
+                .log().all()
+                .extract()
+                .response();
+    }
+}
 
 

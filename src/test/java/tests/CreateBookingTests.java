@@ -1,30 +1,24 @@
-
 package tests;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import core.clients.ApiClient;
-import core.models.BookingDates;
-import core.models.BookingId;
-import core.models.CreatedBooking;
-import core.models.NewBooking;
+
 import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import core.models.BookingDates;
+import core.models.NewBooking;
+import core.models.CreatedBooking;
+import core.clients.ApiClient;
 
-public class GetBookingTests {
-
+public class CreateBookingTests {
     private ApiClient apiClient;
     private ObjectMapper objectMapper;
-    private CreatedBooking createdBooking;
-    private NewBooking newBooking;
+    private CreatedBooking createdBooking; // Храним созданное бронирование
+    private NewBooking newBooking; // Новый объект для создания бронирования
 
     @BeforeEach
     public void setup() {
@@ -39,29 +33,29 @@ public class GetBookingTests {
         newBooking.setBookingdates(new BookingDates("2024-01-01", "2024-01-05")); // Примерные даты
         newBooking.setAdditionalneeds("Breakfast");
     }
+
     @Test
-    public void testGetBooking() throws JsonProcessingException {
-
+    public void createBooking() throws JsonProcessingException {
+        objectMapper = new ObjectMapper();
         String requestBody = objectMapper.writeValueAsString(newBooking);
-
         Response response = apiClient.createBooking(requestBody);
 
-        assertThat(response.statusCode()).isEqualTo(200);
+        //Проверяем, что статус-код ответа равен 200
+        assertThat(response.getStatusCode()).isEqualTo(200);
 
-        createdBooking = objectMapper.readValue(response.asString(), CreatedBooking.class);
+        //Десериализируем тело ответа в объект Booking
+        String responseBody = response.asString();
+        createdBooking = objectMapper.readValue(responseBody, CreatedBooking.class);
 
         assertThat(createdBooking).isNotNull();
 
-        response = apiClient.getBooking();
-
-        assertThat(response.statusCode()).isEqualTo(200);
-
-        List<BookingId> bookingIds = objectMapper.readValue(
-                response.asString(),
-                new TypeReference<List<BookingId>>() {}
-        );
-
-        assertThat(bookingIds).isNotEmpty();
+        assertEquals(createdBooking.getBooking().getFirstname(), newBooking.getFirstname());
+        assertEquals(createdBooking.getBooking().getLastname(), newBooking.getLastname());
+        assertEquals(createdBooking.getBooking().getTotalprice(), newBooking.getTotalprice());
+        assertEquals(createdBooking.getBooking().isDepositpaid(), newBooking.isDepositpaid());
+        assertEquals(createdBooking.getBooking().getBookingdates().getCheckin(), newBooking.getBookingdates().getCheckin());
+        assertEquals(createdBooking.getBooking().getBookingdates().getCheckout(), newBooking.getBookingdates().getCheckout());
+        assertEquals(createdBooking.getBooking().getAdditionalneeds(), newBooking.getAdditionalneeds());
     }
 
     @AfterEach
@@ -78,3 +72,5 @@ public class GetBookingTests {
                 .getStatusCode()).isEqualTo(404);
     }
 }
+
+
